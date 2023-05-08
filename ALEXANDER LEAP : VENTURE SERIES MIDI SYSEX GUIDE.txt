@@ -1,0 +1,100 @@
+ALEXANDER LEAP / VENTURE SERIES MIDI SYSEX GUIDE
+
+Disaster Area Designs LLC Sysex ID 0x00 0x02 0x17
+All valid sysex commands will have this immediately after 0xF0 sysex start byte
+
+Request Device ID Return
+0xF0 0x7E 0x 00 0x06 0x01 0xF7
+
+Pedal will transmit device ID:
+
+    /* this is a request for device ID return
+      0xF0  SysEx
+      0x7E  Non-Realtime
+      0x00  The SysEx channel. Could be from 0x00 to 0x7F.
+      0x06  Sub-ID -- General Information
+      0x02  Sub-ID2 -- Identity Reply
+      0x00  Manufacturer's ID
+      0x02  The f1 and f2 bytes make up the family code. Each
+      0x17  manufacturer assigns different family codes to his products.
+      0xp1  The p1 and p2 bytes make up the model number. Each
+      0xp2  manufacturer assigns different model numbers to his products.
+      0xv1  The v1, v2, v3 and v4 bytes make up the version number.
+      0xv2
+      0xv3
+      0xv4
+      0xF7  End of SysEx
+    */
+
+0xF0, 0x7E, 0x00,
+0x06, 0x02,
+0x00, 0x02, 0x17,
+0x01, 0x02, 0x0A, // this varies by firmware version, example 1.02a
+0x0A, 0x51 // this varies by PRODUCT, 0x0A51 = Space Force
+
+Valid Sysex Commands:
+
+Load Device ID String
+0xF0 0x00 0x02 0x17 0x1C 0xNN 0xNN 0xNN 0xNN 0xNN 0xNN 0xNN 0xNN 0xF7
+0xNN bytes correspond to ASCII characters of device string
+Returns: noone
+
+Return Device ID String
+0xF0 0x00 0x02 0x17 0x0C 0xF7
+Returns: 0xF0 0x00 0x02 0x17 0x1C 0xNN 0xNN 0xNN 0xNN 0xNN 0xNN 0xNN 0xNN 0xF7
+
+Dump All Presets
+0xF0 0x00 0x02 0x17 0x7C 0xF7
+Returns:  32 preset dump messages
+
+Dump Single Preset
+0xF0 0x00 0x02 0x17 0x7D 0xnn 0xF7
+Returns:  1 preset dump for preset nn
+
+Dump Config Data
+0xF0 0x00 0x02 0x17 0x7E 0xF7
+Returns:  Conifg data array (16 bytes)
+
+Restore Config Data
+0xF0 0x00 0x02 0x17 0x7F [config data array] 0xF7
+Restores the config data array (16 bytes)
+Returns: none
+
+Factory Reset
+0xF0 0x00 0x02 0x17 0x0D 0xnn 0xnn 0xF7
+Bytes 5 and 6 MUST match in order to perform reset
+0x00 0x00	do nothing, no reset
+0x01 0x01	do nothing, no reset (should perform dump, not sure if this works)
+0x02 0x02	reset config array, leave presets (CONFIG)
+0x03 0x03	reset presets 0-7 to factory (PRESET)
+0x04 0x04	reset config and presets (ALL)
+Returns: none
+
+Store a preset
+0xF0 0x00 0x02 0x17 0x0A [preset data array] 0xF7
+See Preset Data Array for full details
+Returns: none
+
+
+
+Preset Data Structure
+
+  // bytes 0-3 are sysex ID
+  // 4 is command code
+  // 5 is product ID
+  // 6 is preset to load
+  // 7 - 135 are preset data (up to 128 bytes
+  // 136-167 are preset MSBs (one byte per 4 data bytes)
+  // 183-190 are preset name (8 chars)
+  // 191 is sysex end
+
+  Preset data array is 192 bytes in total
+  Preset data values as used by the pedal are 8bits, 0-255, but MIDI is 7buts, 0-127.  We take the 128 possible data values and split them into a 7 bit LSB and a 1 bit MSB.  Then we combine 4 MSBs into a single byte, so that we have 32 bytes of MSBs.
+
+Leap pedals use 32 bytes of EEPROM to store preset data
+bytes 7-19 are "heel" values for knobs
+bytes 20-31 are "toe" values for knobs
+bytes 32-39 are spare (Luminous uses these for custom patterns)
+
+Venture pedals have larger presets and may use 64 bytes or more depending on the pedal.  All pedals have 192 byte preset dumps, and all follow the same rules, unused data values are sent as zeroes.
+
